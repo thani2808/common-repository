@@ -3,24 +3,34 @@ pipeline {
 
     parameters {
         choice(name: 'APP_TYPE', choices: ['springboot', 'nginx'], description: 'App to deploy')
-        string(name: 'BRANCH', defaultValue: 'main', description: 'Git branch to use')
+        string(name: 'BRANCH', defaultValue: 'feature', description: 'Git branch to use')
     }
 
     environment {
-        GIT_REPO = 'git@github.com:your-username/bastion-apps.git'
+        GIT_REPO = 'git@github.com:thani2808/common-repository.git'
+        GIT_CREDENTIALS_ID = 'private-key-jenkins'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: "${params.BRANCH}", url: "${env.GIT_REPO}"
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${params.BRANCH}"]],
+                    userRemoteConfigs: [[
+                        url: env.GIT_REPO,
+                        credentialsId: env.GIT_CREDENTIALS_ID
+                    ]]
+                ])
             }
         }
 
         stage('Deploy in Parallel') {
             parallel {
                 stage('SpringBoot') {
-                    when { expression { params.APP_TYPE == 'springboot' } }
+                    when {
+                        expression { params.APP_TYPE == 'springboot' }
+                    }
                     steps {
                         dir('springboot') {
                             sh 'docker build -t springboot-app .'
@@ -29,7 +39,9 @@ pipeline {
                     }
                 }
                 stage('Nginx') {
-                    when { expression { params.APP_TYPE == 'nginx' } }
+                    when {
+                        expression { params.APP_TYPE == 'nginx' }
+                    }
                     steps {
                         dir('nginx') {
                             sh 'docker build -t nginx-app .'
