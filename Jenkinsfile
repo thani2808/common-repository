@@ -34,9 +34,11 @@ pipeline {
                     steps {
                         dir('springboot') {
                             sh 'mvn clean package -DskipTests'
-			    sh 'docker build -t springboot-app .'
-			    sh 'docker run -d -p 9010:9010 --name springboot-container springboot-app'                   
-			}
+                            sh 'docker build -t springboot-app .'
+                            // Remove any existing container before running
+                            sh 'docker rm -f springboot-container || true'
+                            sh 'docker run -d -p 9010:9010 --name springboot-container springboot-app'
+                        }
                     }
                 }
                 stage('Nginx') {
@@ -46,7 +48,9 @@ pipeline {
                     steps {
                         dir('nginx') {
                             sh 'docker build -t nginx-app .'
-			    sh 'docker run -d -p 8001:80 --name nginx-container nginx-app'
+                            // Remove any existing container before running
+                            sh 'docker rm -f nginx-container || true'
+                            sh 'docker run -d -p 8001:80 --name nginx-container nginx-app'
                         }
                     }
                 }
