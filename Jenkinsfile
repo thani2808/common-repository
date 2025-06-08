@@ -33,9 +33,10 @@ pipeline {
                     }
                     steps {
                         dir('springboot') {
-                            sh 'docker build -t springboot-app .'
-                            sh 'docker run -d -p 9000:9000 springboot-app'
-                        }
+                            sh './mvnw clean package -DskipTests'
+			    sh 'docker build -t springboot-app .'
+			    sh 'docker run -d -p 9000:9000 --name springboot-container springboot-app'                   
+			}
                     }
                 }
                 stage('Nginx') {
@@ -45,7 +46,7 @@ pipeline {
                     steps {
                         dir('nginx') {
                             sh 'docker build -t nginx-app .'
-                            sh 'docker run -d -p 8001:80 nginx-app'
+			    sh 'docker run -d -p 8001:80 --name nginx-container nginx-app'
                         }
                     }
                 }
