@@ -37,7 +37,7 @@ pipeline {
                             sh 'docker build -t springboot-app .'
                             // Remove any existing container before running
                             sh 'docker rm -f springboot-container || true'
-                            sh 'docker run -d -p 9010:9010 --name springboot-container springboot-app'
+                            sh 'docker run -d -p 9010:9002 --name springboot-container springboot-app'
                         }
                     }
                 }
