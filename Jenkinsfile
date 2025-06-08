@@ -45,7 +45,7 @@ pipeline {
                     steps {
                         dir('nginx') {
                             sh 'docker build -t nginx-app .'
-                            sh 'docker run -d -p 8080:80 nginx-app'
+                            sh 'docker run -d -p 8001:80 nginx-app'
                         }
                     }
                 }
