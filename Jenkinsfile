@@ -33,23 +33,37 @@ pipeline {
                     }
                     steps {
                         dir('springboot') {
-                            sh 'mvn clean package -DskipTests'
+                            // Build JAR
+                            sh './mvnw clean package -DskipTests || mvn clean package -DskipTests'
+                            
+                            // Build Docker image
                             sh 'docker build -t springboot-app .'
-                            // Remove any existing container before running
+
+                            // Remove old container
                             sh 'docker rm -f springboot-container || true'
-                            sh 'docker run -d -p 9010:9002 --name springboot-container springboot-app'
+
+                            // Run app on host port 9010, container port 9010 (make sure Spring Boot uses 9010)
+                            sh 'docker run -d -p 9010:9010 --name springboot-container springboot-app'
+
+                            // Optional: wait for container to start and log a bit
+                            sh 'sleep 5 && docker logs springboot-container --tail 10'
                         }
                     }
                 }
+
                 stage('Nginx') {
                     when {
                         expression { params.APP_TYPE == 'nginx' }
                     }
                     steps {
                         dir('nginx') {
+                            // Build Docker image
                             sh 'docker build -t nginx-app .'
-                            // Remove any existing container before running
+
+                            // Remove old container
                             sh 'docker rm -f nginx-container || true'
+
+                            // Run app on port 8001
                             sh 'docker run -d -p 8001:80 --name nginx-container nginx-app'
                         }
                     }
