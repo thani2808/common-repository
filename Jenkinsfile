@@ -33,7 +33,7 @@ pipeline {
                     }
                     steps {
                         dir('springboot') {
-                            sh './mvnw clean package -DskipTests'
+                            sh 'mvn clean package -DskipTests'
 			    sh 'docker build -t springboot-app .'
 			    sh 'docker run -d -p 9000:9000 --name springboot-container springboot-app'                   
 			}
