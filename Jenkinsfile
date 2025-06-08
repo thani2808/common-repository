@@ -64,7 +64,7 @@ pipeline {
                             sh 'docker rm -f nginx-container || true'
 
                             // Run app on port 8001
-                            sh 'docker run -d -p 8001:80 --name nginx-container nginx-app'
+                            sh 'docker run -d -p 8002:80 --name nginx-container nginx-app'
                         }
                     }
                 }
