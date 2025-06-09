@@ -2,38 +2,58 @@ pipeline {
     agent any
 
     parameters {
-        choice(
-            name: 'APP_TYPE',
-            choices: ['springboot', 'nginx'],
-            description: 'Type of app to deploy'
-        )
-
         cascadeChoiceParameter(
             name: 'REPO_NAME',
-            description: 'Choose repository from thani2808',
+            description: 'Select repository from thani2808',
             filterLength: 1,
             choiceType: 'PT_SINGLE_SELECT',
             referencedParameters: '',
             script: groovyScript(
                 script: '''
+                    import groovy.json.JsonSlurper
+
                     def githubUser = "thani2808"
-                    def repos = []
-                    def conn = new URL("https://api.github.com/users/${githubUser}/repos").openConnection()
+                    def url = "https://api.github.com/users/${githubUser}/repos"
+                    def conn = new URL(url).openConnection()
                     conn.setRequestProperty("User-Agent", "jenkins")
-                    def response = new groovy.json.JsonSlurper().parse(conn.inputStream)
-                    response.each { repo ->
-                        repos << repo.name
+                    def response = new JsonSlurper().parse(conn.inputStream)
+                    def repoNames = response.collect { it.name }
+                    return repoNames.sort()
+                ''',
+                sandbox: false
+            )
+        )
+
+        cascadeChoiceParameter(
+            name: 'COMMON_REPO_BRANCH',
+            description: 'Select branch of selected repo',
+            filterLength: 1,
+            choiceType: 'PT_SINGLE_SELECT',
+            referencedParameters: 'REPO_NAME',
+            script: groovyScript(
+                script: '''
+                    import groovy.json.JsonSlurper
+
+                    def githubUser = "thani2808"
+                    def repo = REPO_NAME
+                    if (!repo) {
+                        return ["Please select a repo first"]
                     }
-                    return repos.sort()
+                    def url = "https://api.github.com/repos/${githubUser}/${repo}/branches"
+                    def conn = new URL(url).openConnection()
+                    conn.setRequestProperty("User-Agent", "jenkins")
+                    def response = new JsonSlurper().parse(conn.inputStream)
+                    def branchNames = response.collect { it.name }
+                    return branchNames.sort()
                 ''',
                 sandbox: false
             )
         )
 
         choice(
-            name: 'COMMON_REPO_BRANCH',
-            choices: ['feature', 'feature-dynamic'],
-            description: 'Branch of common-repository Jenkinsfile to use'
+            name: 'APP_TYPE',
+            choices: ['springboot', 'nginx'],
+            description: 'Type of app to deploy'
         )
     }
 
@@ -55,6 +75,7 @@ pipeline {
                     env.DOCKER_PORT = dockerPort
                     env.DOCKERHUB_REPO = "${env.DOCKERHUB_USERNAME}/${env.IMAGE_NAME}"
                     env.REPO_URL = "git@github.com:thani2808/${params.REPO_NAME}.git"
+                    env.REPO_BRANCH = params.COMMON_REPO_BRANCH ?: 'main'
                 }
             }
         }
@@ -64,10 +85,10 @@ pipeline {
                 script {
                     echo "App Type         : ${params.APP_TYPE}"
                     echo "Target Repo      : ${params.REPO_NAME}"
+                    echo "Branch           : ${params.COMMON_REPO_BRANCH}"
                     echo "Docker Repo      : ${env.DOCKERHUB_REPO}"
                     echo "Container Name   : ${env.CONTAINER_NAME}"
                     echo "Port Mapping     : ${env.HOST_PORT}:${env.DOCKER_PORT}"
-                    echo "Common Repo Branch (Jenkinsfile): ${params.COMMON_REPO_BRANCH}"
                 }
             }
         }
@@ -76,7 +97,7 @@ pipeline {
             steps {
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/feature-dynamic']], // Change if you want to support dynamic branch selection per repo
+                    branches: [[name: "*/${params.COMMON_REPO_BRANCH}"]],
                     userRemoteConfigs: [[
                         url: "${env.REPO_URL}",
                         credentialsId: env.GIT_CREDENTIALS_ID
@@ -140,7 +161,7 @@ pipeline {
 
         stage('Success') {
             steps {
-                echo "🎉 Local deployment of ${params.APP_TYPE} from ${params.REPO_NAME} succeeded!"
+                echo "🎉 Local deployment of ${params.APP_TYPE} from ${params.REPO_NAME} branch ${params.COMMON_REPO_BRANCH} succeeded!"
             }
         }
     }
