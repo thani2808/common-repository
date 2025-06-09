@@ -2,29 +2,19 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'APP_TYPE', choices: ['springboot', 'nginx'], description: 'App to deploy')
+        choice(
+            name: 'APP_TYPE', 
+            choices: ['springboot', 'nginx'], 
+            description: 'App to deploy'
+        )
 
-        // Requires Active Choices Plugin
-        cascadeChoiceParameter(
-            name: 'REPO_NAME',
-            description: 'Choose the repository from thani2808',
-            filterLength: 1,
-            choiceType: 'PT_SINGLE_SELECT',
-            referencedParameters: '',
-            script: groovyScript(
-                script: '''
-                    def githubUser = "thani2808"
-                    def repos = []
-                    def conn = new URL("https://api.github.com/users/${githubUser}/repos").openConnection()
-                    conn.setRequestProperty("User-Agent", "jenkins")
-                    def response = new groovy.json.JsonSlurper().parse(conn.inputStream)
-                    response.each {
-                        repos << it.name
-                    }
-                    return repos
-                ''',
-                sandbox: false
-            )
+        choice(
+            name: 'REPO_NAME', 
+            choices: [
+                'hello-world-bastion', 
+                'dan-p81-bastion'
+            ], 
+            description: 'Choose repository from thani2808'
         )
     }
 
@@ -36,13 +26,13 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 script {
-		    if (!params.REPO_NAME) {
-		        error("❌ Repository name not selected. Please choose a valid repository.")
-		    }
+                    if (!params.REPO_NAME) {
+                        error("❌ Repository name not selected. Please choose a valid repository.")
+                    }
                     def repoURL = "git@github.com:thani2808/${params.REPO_NAME}.git"
                     checkout([
                         $class: 'GitSCM',
-                        branches: [[name: '*/feature']],
+                        branches: [[name: '*/feature']],  // Change branch if needed
                         userRemoteConfigs: [[
                             url: repoURL,
                             credentialsId: env.GIT_CREDENTIALS_ID
