@@ -36,6 +36,9 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 script {
+		    if (!params.REPO_NAME) {
+		        error("❌ Repository name not selected. Please choose a valid repository.")
+		    }
                     def repoURL = "git@github.com:thani2808/${params.REPO_NAME}.git"
                     checkout([
                         $class: 'GitSCM',
