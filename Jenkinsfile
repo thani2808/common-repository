@@ -18,7 +18,7 @@ pipeline {
         stage('Initialize') {
             steps {
                 script {
-                    def portMap = [springboot: '9011', nginx: '80']
+                    def portMap = [springboot: '9004', nginx: '80']
                     def dockerPort = portMap[params.APP_TYPE]
 
                     env.IMAGE_NAME = "${params.APP_TYPE}-local-app"
