@@ -76,7 +76,7 @@ pipeline {
             steps {
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/feature']], // Change if you want to support dynamic branch selection per repo
+                    branches: [[name: '*/feature-dynamic']], // Change if you want to support dynamic branch selection per repo
                     userRemoteConfigs: [[
                         url: "${env.REPO_URL}",
                         credentialsId: env.GIT_CREDENTIALS_ID
