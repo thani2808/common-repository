@@ -3,25 +3,51 @@ pipeline {
 
     parameters {
         choice(name: 'APP_TYPE', choices: ['springboot', 'nginx'], description: 'App to deploy')
-        string(name: 'BRANCH', defaultValue: 'feature', description: 'Git branch to use')
+
+        // Active Choices Parameter for GitHub repos
+        [$class: 'CascadeChoiceParameter',
+         choiceType: 'PT_SINGLE_SELECT',
+         filterLength: 1,
+         name: 'REPO_NAME',
+         description: 'Choose the repository from thani2808',
+         referencedParameters: '',
+         script: [
+            $class: 'GroovyScript',
+            script: [
+                sandbox: false,
+                script: '''
+                    def githubUser = "thani2808"
+                    def repos = []
+                    def conn = new URL("https://api.github.com/users/${githubUser}/repos").openConnection()
+                    conn.setRequestProperty("User-Agent", "jenkins")
+                    def response = new groovy.json.JsonSlurper().parse(conn.inputStream)
+                    response.each {
+                        repos << it.name
+                    }
+                    return repos
+                '''
+            ]
+        ]]
     }
 
     environment {
-        GIT_REPO = 'git@github.com:thani2808/common-repository.git'
         GIT_CREDENTIALS_ID = 'private-key-jenkins'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: "*/${params.BRANCH}"]],
-                    userRemoteConfigs: [[
-                        url: env.GIT_REPO,
-                        credentialsId: env.GIT_CREDENTIALS_ID
-                    ]]
-                ])
+                script {
+                    def repoURL = "git@github.com:thani2808/${params.REPO_NAME}.git"
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        userRemoteConfigs: [[
+                            url: repoURL,
+                            credentialsId: env.GIT_CREDENTIALS_ID
+                        ]]
+                    ])
+                }
             }
         }
 
@@ -33,19 +59,10 @@ pipeline {
                     }
                     steps {
                         dir('springboot') {
-                            // Build JAR
                             sh './mvnw clean package -DskipTests || mvn clean package -DskipTests'
-                            
-                            // Build Docker image
                             sh 'docker build -t springboot-app .'
-
-                            // Remove old container
                             sh 'docker rm -f springboot-container || true'
-
-                            // Run app on host port 9010, container port 9010 (make sure Spring Boot uses 9010)
                             sh 'docker run -d -p 9010:9010 --name springboot-container springboot-app'
-
-                            // Optional: wait for container to start and log a bit
                             sh 'sleep 5 && docker logs springboot-container --tail 10'
                         }
                     }
@@ -57,13 +74,8 @@ pipeline {
                     }
                     steps {
                         dir('nginx') {
-                            // Build Docker image
                             sh 'docker build -t nginx-app .'
-
-                            // Remove old container
                             sh 'docker rm -f nginx-container || true'
-
-                            // Run app on port 8001
                             sh 'docker run -d -p 8002:80 --name nginx-container nginx-app'
                         }
                     }
