@@ -4,17 +4,14 @@ pipeline {
     parameters {
         choice(name: 'APP_TYPE', choices: ['springboot', 'nginx'], description: 'App to deploy')
 
-        // Active Choices Parameter for GitHub repos
-        [$class: 'CascadeChoiceParameter',
-         choiceType: 'PT_SINGLE_SELECT',
-         filterLength: 1,
-         name: 'REPO_NAME',
-         description: 'Choose the repository from thani2808',
-         referencedParameters: '',
-         script: [
-            $class: 'GroovyScript',
-            script: [
-                sandbox: false,
+        // Requires Active Choices Plugin
+        cascadeChoiceParameter(
+            name: 'REPO_NAME',
+            description: 'Choose the repository from thani2808',
+            filterLength: 1,
+            choiceType: 'PT_SINGLE_SELECT',
+            referencedParameters: '',
+            script: groovyScript(
                 script: '''
                     def githubUser = "thani2808"
                     def repos = []
@@ -25,9 +22,10 @@ pipeline {
                         repos << it.name
                     }
                     return repos
-                '''
-            ]
-        ]]
+                ''',
+                sandbox: false
+            )
+        )
     }
 
     environment {
@@ -41,7 +39,7 @@ pipeline {
                     def repoURL = "git@github.com:thani2808/${params.REPO_NAME}.git"
                     checkout([
                         $class: 'GitSCM',
-                        branches: [[name: '*/main']],
+                        branches: [[name: '*/feature']],
                         userRemoteConfigs: [[
                             url: repoURL,
                             credentialsId: env.GIT_CREDENTIALS_ID
@@ -81,6 +79,12 @@ pipeline {
                     }
                 }
             }
+        }
+    }
+
+    post {
+        failure {
+            echo '❌ Build failed. Please check logs above.'
         }
     }
 }
