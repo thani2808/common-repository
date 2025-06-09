@@ -76,10 +76,11 @@ pipeline {
         stage('Run Locally') {
             steps {
                 script {
+                    def runCmd = params.APP_TYPE == 'springboot' ? "java -jar app.jar --server.port=${env.HOST_PORT}" : ""
                     sh """
                         docker stop ${env.CONTAINER_NAME} || true
                         docker rm ${env.CONTAINER_NAME} || true
-                        docker run -d --name ${env.CONTAINER_NAME} -p ${env.HOST_PORT}:${env.DOCKER_PORT} ${env.IMAGE_NAME} ${params.APP_TYPE == 'springboot' ? 'java -jar app.jar --server.port=' + env.HOST_PORT : ''}
+                        docker run -d --name ${env.CONTAINER_NAME} -p ${env.HOST_PORT}:${env.DOCKER_PORT} ${env.IMAGE_NAME} ${runCmd}
                     """
                 }
             }
