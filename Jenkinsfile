@@ -1,28 +1,32 @@
 pipeline {
     agent any
 
-    parameters {
-        choice(
-            name: 'APP_TYPE', 
-            choices: ['springboot', 'nginx'], 
-            description: 'App to deploy'
-        )
-
-        choice(
-            name: 'REPO_NAME', 
-            choices: [
-                'hello-world-bastion', 
-                'dan-p81-bastion'
-            ], 
-            description: 'Choose repository from thani2808'
-        )
-    }
-
-    environment {
-        GIT_CREDENTIALS_ID = 'private-key-jenkins'
-    }
-
     stages {
+        stage('Initialize') {
+            steps {
+                script {
+                    // Define job parameters here so they appear in UI
+                    properties([
+                        parameters([
+                            choice(
+                                name: 'APP_TYPE',
+                                choices: ['springboot', 'nginx'],
+                                description: 'App to deploy'
+                            ),
+                            choice(
+                                name: 'REPO_NAME',
+                                choices: [
+                                    'hello-world-bastion',
+                                    'dan-p81-bastion'
+                                ],
+                                description: 'Choose repository from thani2808'
+                            )
+                        ])
+                    ])
+                }
+            }
+        }
+
         stage('Clone Repository') {
             steps {
                 script {
@@ -32,10 +36,10 @@ pipeline {
                     def repoURL = "git@github.com:thani2808/${params.REPO_NAME}.git"
                     checkout([
                         $class: 'GitSCM',
-                        branches: [[name: '*/feature']],  // Change branch if needed
+                        branches: [[name: '*/feature']],
                         userRemoteConfigs: [[
                             url: repoURL,
-                            credentialsId: env.GIT_CREDENTIALS_ID
+                            credentialsId: 'private-key-jenkins'
                         ]]
                     ])
                 }
